@@ -1,7 +1,6 @@
 /**
  * External dependencies
  */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
 import { Pill } from '@woocommerce/components';
 import { Popover } from '@wordpress/components';
@@ -64,11 +63,7 @@ export const StatusBadge = ( {
 
 	const hidePopoverDebounced = useDebounce( () => {
 		setPopoverVisible( false );
-	}, 350 );
-	const showPopover = () => {
-		setPopoverVisible( true );
-		hidePopoverDebounced.cancel();
-	};
+	}, 1000 );
 
 	/**
 	 * Get the appropriate CSS class for the badge based on the status.
@@ -119,7 +114,7 @@ export const StatusBadge = ( {
 				<span
 					className="woocommerce-status-badge__icon-container"
 					onClick={ () => setPopoverVisible( ! isPopoverVisible ) }
-					onMouseEnter={ showPopover }
+					onMouseEnter={ () => hidePopoverDebounced.cancel() }
 					onMouseLeave={ hidePopoverDebounced }
 					onKeyDown={ ( event ) => {
 						if ( event.key === 'Enter' || event.key === ' ' ) {
