@@ -15,6 +15,7 @@ use Automattic\WooCommerce\Enums\ProductType;
 use Automattic\WooCommerce\Utilities\DiscountsUtil;
 use Automattic\WooCommerce\Utilities\NumberUtil;
 use Automattic\WooCommerce\Utilities\ShippingUtil;
+use Automattic\WooCommerce\StoreApi\Utilities\LocalPickupUtils;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -26,6 +27,14 @@ require_once WC_ABSPATH . 'includes/class-wc-cart-session.php';
  * WC_Cart class.
  */
 class WC_Cart extends WC_Legacy_Cart {
+
+	/**
+	 * Cart context, used to determine if the cart is being used in a StoreAPI or shortcode context. This should only
+	 * be used internally.
+	 *
+	 * @var string shortcode|store-api
+	 */
+	public $cart_context = 'shortcode';
 
 	/**
 	 * Contains an array of cart items.
@@ -1503,7 +1512,7 @@ class WC_Cart extends WC_Legacy_Cart {
 			}
 		}
 
-		$this->set_shipping_total( array_sum( $shipping_costs ) );
+		$this->set_shipping_total( array_sum( array_filter( $shipping_costs ) ) );
 		$this->set_shipping_tax( array_sum( $merged_taxes ) );
 		$this->set_shipping_taxes( $merged_taxes );
 
@@ -1625,10 +1634,55 @@ class WC_Cart extends WC_Legacy_Cart {
 		}
 
 		if ( 'yes' === get_option( 'woocommerce_shipping_cost_requires_address' ) ) {
-			$customer = $this->get_customer();
+			if ( 'shortcode' === $this->cart_context ) {
+				$country = $this->get_customer()->get_shipping_country();
+				if ( ! $country ) {
+					return false;
+				}
+				$country_fields  = WC()->countries->get_address_fields( $country, 'shipping_' );
+				$checkout_fields = WC()->checkout()->get_checkout_fields();
 
-			if ( ! $customer instanceof \WC_Customer || ! $customer->has_full_shipping_address() ) {
-				return false;
+				/**
+				 * Filter to not require shipping state for shipping calculation, even if it is required at checkout.
+				 * This can be used to allow shipping calculations to be done without a state.
+				 *
+				 * @since 8.4.0
+				 *
+				 * @param bool $show_state Whether to use the state field. Default true.
+				 */
+				$state_enabled  = apply_filters( 'woocommerce_shipping_calculator_enable_state', true );
+				$state_required = isset( $country_fields['shipping_state'] ) && $country_fields['shipping_state']['required'];
+				// Takes care of late unsetting of checkout fields via hooks (woocommerce_checkout_fields, woocommerce_shipping_fields).
+				$checkout_state_field_exists = isset( $checkout_fields['shipping']['shipping_state'] );
+				if ( $state_enabled && $state_required && ! $this->get_customer()->get_shipping_state() && $checkout_state_field_exists ) {
+					return false;
+				}
+				/**
+				 * Filter to not require shipping postcode for shipping calculation, even if it is required at checkout.
+				 * This can be used to allow shipping calculations to be done without a postcode.
+				 *
+				 * @since 8.4.0
+				 *
+				 * @param bool $show_postcode Whether to use the postcode field. Default true.
+				 */
+				$postcode_enabled  = apply_filters( 'woocommerce_shipping_calculator_enable_postcode', true );
+				$postcode_required = isset( $country_fields['shipping_postcode'] ) && $country_fields['shipping_postcode']['required'];
+				// Takes care of late unsetting of checkout fields via hooks (woocommerce_checkout_fields, woocommerce_shipping_fields).
+				$checkout_postcode_field_exists = isset( $checkout_fields['shipping']['shipping_postcode'] );
+				if ( $postcode_enabled && $postcode_required && '' === $this->get_customer()->get_shipping_postcode() && $checkout_postcode_field_exists ) {
+					return false;
+				}
+			} else {
+				// If local pickup is enabled, shipping should be shown so that pickup locations are visible before address entry.
+				if ( LocalPickupUtils::is_local_pickup_enabled() ) {
+					return true;
+				}
+
+				$customer = $this->get_customer();
+
+				if ( ! $customer instanceof \WC_Customer || ! $customer->has_full_shipping_address() ) {
+					return false;
+				}
 			}
 		}
 

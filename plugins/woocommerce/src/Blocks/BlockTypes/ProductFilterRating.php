@@ -122,10 +122,24 @@ final class ProductFilterRating extends AbstractBlock {
 				$value = (string) $rating['rating'];
 
 				$aria_label = sprintf(
-					/* translators: %s is referring to rating value. Example: Rated 4 out of 5. */
-					__( 'Rated %s out of 5', 'woocommerce' ),
+					/* translators: %1$d is referring to rating value. Example: Rated 4 out of 5. */
+					__( 'Rated %1$d out of 5', 'woocommerce' ),
 					$value,
 				);
+
+				if ( $attributes['showCounts'] ) {
+					$aria_label = sprintf(
+						/* translators: %1$d is referring to rating value, %2$d is the count. */
+						_n(
+							'Rated %1$d out of 5 (%2$d product)',
+							'Rated %1$d out of 5 (%2$d products)',
+							$rating['count'],
+							'woocommerce'
+						),
+						$value,
+						$rating['count']
+					);
+				}
 
 				return array(
 					'label'     => $this->render_rating_label( (int) $value ),
@@ -159,6 +173,7 @@ final class ProductFilterRating extends AbstractBlock {
 
 		if ( empty( $filter_options ) ) {
 			$wrapper_attributes['hidden'] = true;
+			$wrapper_attributes['class']  = 'wc-block-product-filter--hidden';
 		}
 
 		return sprintf(
@@ -228,7 +243,7 @@ final class ProductFilterRating extends AbstractBlock {
 		foreach ( $counts as $key => $value ) {
 			$data[] = array(
 				'rating' => $key,
-				'count'  => $value,
+				'count'  => intval( $value ),
 			);
 		}
 

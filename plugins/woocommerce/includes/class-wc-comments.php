@@ -161,9 +161,20 @@ class WC_Comments {
 	}
 
 	/**
-	 * Exclude action_log comments from queries and RSS.
+	 * Exclude webhook comments from queries and RSS.
 	 *
 	 * @since  2.1
+	 * @param  string $where The WHERE clause of the query.
+	 * @return string
+	 */
+	public static function exclude_webhook_comments_from_feed_where( $where ) {
+		return $where . ( trim( $where ) ? ' AND ' : '' ) . " comment_type != 'webhook_delivery' ";
+	}
+
+	/**
+	 * Exclude action_log comments from queries and RSS.
+	 *
+	 * @since  9.9
 	 * @param  string $where The WHERE clause of the query.
 	 * @return string
 	 */
@@ -470,7 +481,9 @@ class WC_Comments {
 		$comment  = get_comment( $comment_id );
 		$verified = false;
 		if ( 'product' === get_post_type( $comment->comment_post_ID ) ) {
-			$verified = wc_customer_bought_product( $comment->comment_author_email, $comment->user_id, $comment->comment_post_ID );
+			// When possible, narrow down wc_customer_bought_product inputs for better performance.
+			$email    = $comment->user_id ? '' : $comment->comment_author_email;
+			$verified = wc_customer_bought_product( $email, $comment->user_id, $comment->comment_post_ID );
 			add_comment_meta( $comment_id, 'verified', (int) $verified, true );
 		}
 		return $verified;
