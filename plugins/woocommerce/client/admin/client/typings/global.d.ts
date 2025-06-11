@@ -23,12 +23,6 @@ declare global {
 					activePlugins: string[];
 					installedPlugins: string[];
 				};
-				wcpayWelcomePageIncentive: {
-					id: string;
-					description: string;
-					cta_label: string;
-					tc_url: string;
-				};
 				currency?: {
 					symbol: string;
 				};
@@ -73,8 +67,6 @@ declare global {
 			subscriptions: boolean;
 			'store-alerts': boolean;
 			'transient-notices': boolean;
-			'wc-pay-promotion': boolean;
-			'wc-pay-welcome-page': boolean;
 			'woo-mobile-welcome': boolean;
 			'shipping-smart-defaults': boolean;
 			'shipping-setting-tour': boolean;
