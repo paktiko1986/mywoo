@@ -9,6 +9,7 @@ namespace Automattic\WooCommerce\Internal\DataStores\StockNotifications;
 
 use Automattic\WooCommerce\Internal\StockNotifications\Notification;
 use Automattic\WooCommerce\Internal\Utilities\DatabaseUtil;
+use Automattic\WooCommerce\Internal\StockNotifications\Enums\NotificationStatus;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -94,7 +95,7 @@ CREATE TABLE $table_name (
 	date_cancelled_gmt datetime NULL,
 	cancellation_source varchar(30) NULL,
 	PRIMARY KEY  (id),
-	KEY product_status_attempt (product_id, status, date_last_attempt_gmt, id),
+	KEY status_product_attempt (status, product_id, date_last_attempt_gmt),
 	KEY user_lookup (user_id, product_id, status),
 	KEY email_lookup (user_email, product_id, status)
 ) $collate;
@@ -491,5 +492,29 @@ CREATE TABLE $meta_table_name (
 			},
 			$results
 		);
+	}
+
+	/**
+	 * Check if the product has active notifications.
+	 *
+	 * @param array<int> $product_ids The product IDs.
+	 * @return bool True if the product has active notifications, false otherwise.
+	 */
+	public function product_has_active_notifications( array $product_ids ): bool {
+		global $wpdb;
+
+		$product_ids = array_filter( array_map( 'absint', $product_ids ) );
+		if ( empty( $product_ids ) ) {
+			return false;
+		}
+
+		$table    = $this->get_table_name();
+		$format   = array_fill( 0, count( $product_ids ), '%d' );
+		$query_in = '(' . implode( ',', $format ) . ')';
+		$sql      = $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+			"SELECT 1 FROM %i WHERE product_id IN $query_in AND status = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			array( $table, ...$product_ids, NotificationStatus::ACTIVE )
+		);
+		return (int) $wpdb->get_var( $sql ) > 0; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 }
