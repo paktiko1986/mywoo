@@ -805,7 +805,7 @@ class WC_Email extends WC_Settings_API {
 	 * @return string
 	 */
 	public function style_inline( $content ) {
-		if ( in_array( $this->get_content_type(), array( 'text/html', 'multipart/alternative' ), true ) ) {
+		if ( apply_filters( 'woocommerce_email_style_inline', true, $this ) && in_array( $this->get_content_type(), array( 'text/html', 'multipart/alternative' ), true ) ) {
 			$css  = '';
 			$css .= $this->get_must_use_css_styles();
 			$css .= "\n";
