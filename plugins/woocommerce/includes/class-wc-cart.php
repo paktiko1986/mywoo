@@ -1860,7 +1860,7 @@ class WC_Cart extends WC_Legacy_Cart {
 		}
 
 		// Check if applied.
-		if ( $this->has_discount( $coupon_code ) ) {
+		if ( $this->has_discount( $the_coupon->get_code() ) ) {
 			$the_coupon->add_coupon_message( WC_Coupon::E_WC_COUPON_ALREADY_APPLIED );
 			return false;
 		}
@@ -1898,7 +1898,7 @@ class WC_Cart extends WC_Legacy_Cart {
 			}
 		}
 
-		$this->applied_coupons[] = $coupon_code;
+		$this->applied_coupons[] = $the_coupon->get_code();
 
 		// Choose free shipping.
 		if ( $the_coupon->get_free_shipping() ) {
@@ -1914,7 +1914,7 @@ class WC_Cart extends WC_Legacy_Cart {
 
 		$the_coupon->add_coupon_message( WC_Coupon::WC_COUPON_SUCCESS );
 
-		do_action( 'woocommerce_applied_coupon', $coupon_code );
+		do_action( 'woocommerce_applied_coupon', $the_coupon->get_code() );
 
 		return true;
 	}
