@@ -8,24 +8,12 @@ use Automattic\WooCommerce\Internal\DataStores\StockNotifications\StockNotificat
 use Automattic\WooCommerce\Internal\StockNotifications\Enums\NotificationStatus;
 use Automattic\WooCommerce\Internal\StockNotifications\Notification;
 use Automattic\WooCommerce\Internal\StockNotifications\Factory;
-
+use Automattic\WooCommerce\Internal\StockNotifications\Admin\NotificationsPage;
 
 /**
  * Notifications list table for Customer Stock Notifications.
  */
 class ListTable extends \WP_List_Table {
-
-	/**
-	 * Page URL.
-	 *
-	 * @const PAGE_URL
-	 */
-	const PAGE_URL = 'admin.php?page=wc-customer-stock-notifications';
-
-	/**
-	 * Notices option name.
-	 */
-	const NOTICES_OPTION_NAME = 'wc_customer_stock_notifications_action_notice';
 
 	/**
 	 * Total view records.
@@ -117,15 +105,15 @@ class ListTable extends \WP_List_Table {
 	 */
 	public function column_id( $notification ) {
 		$actions = array(
-			'edit'   => sprintf( '<a href="' . admin_url( 'admin.php?page=wc-customer-stock-notifications&notification_action=edit&notification_id=%d' ) . '">%s</a>', $notification->get_id(), __( 'Edit', 'woocommerce' ) ),
-			'delete' => sprintf( '<a href="' . wp_nonce_url( admin_url( 'admin.php?page=wc-customer-stock-notifications&notification_action=delete&notification_id=%d' ), 'delete_customer_stock_notification' ) . '">%s</a>', $notification->get_id(), __( 'Delete', 'woocommerce' ) ),
+			'edit'   => sprintf( '<a href="' . admin_url( NotificationsPage::PAGE_URL . '&notification_action=edit&notification_id=%d' ) . '">%s</a>', $notification->get_id(), __( 'Edit', 'woocommerce' ) ),
+			'delete' => sprintf( '<a href="' . wp_nonce_url( admin_url( NotificationsPage::PAGE_URL . '&notification_action=delete&notification_id=%d' ), 'delete_customer_stock_notification' ) . '">%s</a>', $notification->get_id(), __( 'Delete', 'woocommerce' ) ),
 		);
 
 		$title = $notification->get_id();
 
 		printf(
 			'<a class="row-title" href="%s" aria-label="%s">#%s</a>%s',
-			esc_url( admin_url( 'admin.php?page=wc-customer-stock-notifications&notification_action=edit&notification_id=' . $notification->get_id() ) ),
+			esc_url( admin_url( NotificationsPage::PAGE_URL . '&notification_action=edit&notification_id=' . $notification->get_id() ) ),
 			/* translators: %s: Notification code */
 			sprintf( esc_attr__( '&#8220;%s&#8221; (Edit)', 'woocommerce' ), esc_attr( $title ) ),
 			esc_html( $title ),
@@ -753,7 +741,7 @@ class ListTable extends \WP_List_Table {
 	 *
 	 * @return void
 	 */
-	private function process_delete_action(): void {
+	public function process_delete_action(): void {
 
 		$action = isset( $_GET['notification_action'] ) ? wc_clean( wp_unslash( $_GET['notification_action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
@@ -775,15 +763,15 @@ class ListTable extends \WP_List_Table {
 			$this->data_store->delete( $notification );
 
 			$notice_message = __( 'Notification deleted.', 'woocommerce' );
-			update_option( self::NOTICES_OPTION_NAME, $notice_message );
+			NotificationsPage::add_notice( $notice_message, 'success' );
 
 		} catch ( \Exception $e ) {
 
 			$notice_message = __( 'Notification not found.', 'woocommerce' );
-			update_option( self::NOTICES_OPTION_NAME, $notice_message );
+			NotificationsPage::add_notice( $notice_message, 'error' );
 		}
 
-		wp_safe_redirect( admin_url( self::PAGE_URL ) );
+		wp_safe_redirect( admin_url( NotificationsPage::PAGE_URL ) );
 		exit();
 	}
 
@@ -805,7 +793,7 @@ class ListTable extends \WP_List_Table {
 			return;
 		}
 
-		$redirect_url = self::PAGE_URL;
+		$redirect_url = NotificationsPage::PAGE_URL;
 
 		if ( 'enable' === $this->current_action() ) {
 			foreach ( $notifications as $id ) {
@@ -826,7 +814,9 @@ class ListTable extends \WP_List_Table {
 				),
 				count( $notifications )
 			);
-			update_option( self::NOTICES_OPTION_NAME, $notice_message );
+
+			NotificationsPage::add_notice( $notice_message, 'success' );
+
 		} elseif ( 'cancel' === $this->current_action() ) {
 			foreach ( $notifications as $id ) {
 				$notification = new Notification( $id );
@@ -845,7 +835,9 @@ class ListTable extends \WP_List_Table {
 				),
 				count( $notifications )
 			);
-			update_option( self::NOTICES_OPTION_NAME, $notice_message );
+
+			NotificationsPage::add_notice( $notice_message, 'success' );
+
 		} elseif ( 'delete' === $this->current_action() ) {
 			foreach ( $notifications as $id ) {
 				$notification = new Notification( $id );
@@ -863,40 +855,11 @@ class ListTable extends \WP_List_Table {
 				),
 				count( $notifications )
 			);
-			update_option( self::NOTICES_OPTION_NAME, $notice_message );
+
+			NotificationsPage::add_notice( $notice_message, 'success' );
 		}
 
 		wp_safe_redirect( $redirect_url );
 		exit();
-	}
-
-	/**
-	 * Add admin notices.
-	 *
-	 * @return void
-	 */
-	public static function output_admin_notice(): void {
-
-		if ( ! function_exists( 'wp_admin_notice' ) ) {
-			return;
-		}
-
-		$notice_message = get_option( self::NOTICES_OPTION_NAME );
-
-		if ( empty( $notice_message ) ) {
-			return;
-		}
-
-		\wp_admin_notice(
-			$notice_message,
-			array(
-				'type'               => 'message',
-				'id'                 => self::NOTICES_OPTION_NAME,
-				'dismissible'        => false,
-				'additional_classes' => array( 'updated' ),
-			)
-		);
-
-		delete_option( self::NOTICES_OPTION_NAME );
 	}
 }
