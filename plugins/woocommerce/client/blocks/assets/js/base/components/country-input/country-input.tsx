@@ -22,7 +22,7 @@ export const CountryInput = ( {
 	value = '',
 	autoComplete = 'off',
 	required = false,
-}: CountryInputWithCountriesProps ): JSX.Element => {
+}: CountryInputWithCountriesProps ) => {
 	const options = useMemo< SelectOption[] >( () => {
 		return Object.entries( countries ).map(
 			( [ countryCode, countryName ] ) => ( {
@@ -43,6 +43,7 @@ export const CountryInput = ( {
 			value={ value }
 			required={ required }
 			autoComplete={ autoComplete }
+			readonly={ options.length === 1 && !! value }
 		/>
 	);
 };
