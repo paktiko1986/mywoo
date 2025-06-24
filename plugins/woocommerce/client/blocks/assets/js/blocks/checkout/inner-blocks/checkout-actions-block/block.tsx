@@ -2,13 +2,14 @@
  * External dependencies
  */
 import clsx from 'clsx';
+import type { ReactNode } from 'react';
 import { getSetting } from '@woocommerce/settings';
 import {
 	PlaceOrderButton,
 	ReturnToCartButton,
 } from '@woocommerce/base-components/cart-checkout';
 import { useCheckoutSubmit } from '@woocommerce/base-context/hooks';
-import { noticeContexts } from '@woocommerce/base-context';
+import { noticeContexts, usePaymentMethodInterface } from '@woocommerce/base-context';
 import { StoreNoticesContainer } from '@woocommerce/blocks-components';
 import { applyCheckoutFilter } from '@woocommerce/blocks-checkout';
 
@@ -27,6 +28,15 @@ export type BlockAttributes = {
 	returnToCartButtonLabel: string;
 };
 
+const PaymentMethodPlaceOrderButtonContainer = ( {
+	children,
+}: {
+	children: ReactNode;
+} ) => {
+	// TODO: dynamically change the CSS based on the checkout status. E.g.: when processing, add an overlay.
+	return <div className="wc-block-checkout__actions_row">{ children }</div>;
+};
+
 const Block = ( {
 	cartPageId,
 	showReturnToCart,
@@ -34,13 +44,13 @@ const Block = ( {
 	placeOrderButtonLabel,
 	returnToCartButtonLabel,
 	priceSeparator,
-}: {
-	cartPageId: number;
-	showReturnToCart: boolean;
-	className?: string;
-	placeOrderButtonLabel: string;
-} ): JSX.Element => {
-	const { paymentMethodButtonLabel } = useCheckoutSubmit();
+}: BlockAttributes ): JSX.Element => {
+	const {
+		paymentMethodButtonLabel,
+		paymentMethodPlaceOrderButton: PaymentMethodPlaceOrderButton,
+	} = useCheckoutSubmit();
+
+	const paymentMethodInterface = usePaymentMethodInterface();
 
 	const label = applyCheckoutFilter( {
 		filterName: 'placeOrderButtonLabel',
@@ -76,12 +86,20 @@ const Block = ( {
 					}` }
 					</style>
 				) }
-				<PlaceOrderButton
-					label={ label }
-					fullWidth={ ! showReturnToCart }
-					showPrice={ showPrice }
-					priceSeparator={ priceSeparator }
-				/>
+				{ PaymentMethodPlaceOrderButton ? (
+					<PaymentMethodPlaceOrderButtonContainer>
+						<PaymentMethodPlaceOrderButton
+							{ ...paymentMethodInterface }
+						/>
+					</PaymentMethodPlaceOrderButtonContainer>
+				) : (
+					<PlaceOrderButton
+						label={ label }
+						fullWidth={ ! showReturnToCart }
+						showPrice={ showPrice }
+						priceSeparator={ priceSeparator }
+					/>
+				) }
 			</div>
 		</div>
 	);
