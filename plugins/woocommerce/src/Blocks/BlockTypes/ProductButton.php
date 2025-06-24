@@ -34,7 +34,7 @@ class ProductButton extends AbstractBlock {
 	 * Register the context.
 	 */
 	protected function get_block_type_uses_context() {
-		return [ 'query', 'queryId', 'postId' ];
+		return array( 'query', 'queryId', 'postId' );
 	}
 
 	/**
@@ -218,7 +218,7 @@ class ProductButton extends AbstractBlock {
 		';
 
 		$button_directives = $is_descendant_of_add_to_cart_form ?
-			'data-wp-class--disabled="woocommerce/add-to-cart-with-options::!state.isFormValid"' :
+			'data-wp-bind--disabled="woocommerce/add-to-cart-with-options::!state.isFormValid"' :
 			'data-wp-on--click="actions.addCartItem"';
 		$anchor_directive  = $is_descendant_of_add_to_cart_form ? '' : 'data-wp-on--click="woocommerce/product-collection::actions.viewProduct"';
 
@@ -237,10 +237,10 @@ class ProductButton extends AbstractBlock {
 				'class' => implode(
 					' ',
 					array_filter(
-						[
+						array(
 							'wp-block-button wc-block-components-product-button',
 							esc_attr( $classname . ' ' . $custom_width_classes . ' ' . $custom_align_classes ),
-						]
+						)
 					)
 				),
 			)
