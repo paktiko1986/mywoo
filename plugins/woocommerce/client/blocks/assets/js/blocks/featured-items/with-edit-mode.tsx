@@ -6,18 +6,29 @@ import {
 	ProductResponseItem,
 	ProductCategoryResponseItem,
 } from '@woocommerce/types';
-import { Placeholder, Icon, Button } from '@wordpress/components';
+import {
+	Placeholder,
+	Icon,
+	Button,
+	// @ts-expect-error Using experimental features
+	__experimentalHStack as HStack,
+	// @ts-expect-error Using experimental features
+	__experimentalText as Text,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import ProductCategoryControl from '@woocommerce/editor-components/product-category-control';
 import ProductControl from '@woocommerce/editor-components/product-control';
 import type { ComponentType } from 'react';
+import { useFeaturedItemStatus } from './use-featured-item-status';
+import { useEffect } from '@wordpress/element';
+import { info } from '@wordpress/icons';
 
 /**
  * Internal dependencies
  */
 import { BLOCK_NAMES } from './constants';
 import { EditorBlock, GenericBlockUIConfig } from './types';
-import { getClassPrefixFromName } from './utils';
+import { getClassPrefixFromName, getInvalidItemDescription } from './utils';
 
 interface EditModeConfiguration extends GenericBlockUIConfig {
 	description: string;
@@ -37,6 +48,7 @@ interface EditModeRequiredProps< T > {
 	debouncedSpeak: ( label: string ) => void;
 	setAttributes: ( attrs: Partial< EditModeRequiredAttributes > ) => void;
 	triggerUrlUpdate: () => void;
+	isLoading: boolean;
 }
 
 type EditModeProps< T extends EditorBlock< T > > = T &
@@ -61,6 +73,42 @@ export const withEditMode =
 			debouncedSpeak( editLabel );
 		};
 
+		const itemId =
+			name === BLOCK_NAMES.featuredProduct
+				? attributes?.productId
+				: attributes?.categoryId;
+
+		const { status, isDeleted, isLoading } = useFeaturedItemStatus( {
+			itemId,
+			itemType: name,
+		} );
+
+		useEffect( () => {
+			const currEditModeValue =
+				( name === BLOCK_NAMES.featuredProduct &&
+					status !== 'publish' ) ||
+				isDeleted;
+
+			if (
+				currEditModeValue !== attributes.editMode &&
+				typeof currEditModeValue === 'boolean'
+			) {
+				setAttributes( { editMode: currEditModeValue } );
+			}
+		}, [ status, isDeleted, attributes.editMode, name, setAttributes ] );
+
+		if ( isLoading ) {
+			return (
+				<Placeholder
+					icon={ <Icon icon={ icon } /> }
+					label={ label }
+					className={ className }
+				>
+					<div>{ __( 'Loading...', 'woocommerce' ) }</div>
+				</Placeholder>
+			);
+		}
+
 		if ( attributes.editMode ) {
 			return (
 				<Placeholder
@@ -68,7 +116,21 @@ export const withEditMode =
 					label={ label }
 					className={ className }
 				>
-					{ description }
+					<HStack alignment="center">
+						{ attributes.productId || attributes.categoryId ? (
+							<Icon
+								icon={ info }
+								className="wc-blocks-featured-items__orange-info-icon"
+							/>
+						) : (
+							<Icon icon={ info } />
+						) }
+						<Text>
+							{ attributes.productId || attributes.categoryId
+								? getInvalidItemDescription( name )
+								: description }
+						</Text>
+					</HStack>
 					<div className={ `${ className }__selection` }>
 						{ name === BLOCK_NAMES.featuredCategory && (
 							<ProductCategoryControl
