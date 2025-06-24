@@ -73,6 +73,9 @@ const blocks = {
 	},
 	'classic-shortcode': {},
 	'page-content-wrapper': {},
+	'payment-method-icons': {
+		isExperimental: true,
+	},
 	'price-filter': {},
 	'product-best-sellers': {},
 	'product-category': {},
