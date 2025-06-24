@@ -8,6 +8,7 @@ import type {
 } from 'react-number-format';
 import clsx from 'clsx';
 import type { ReactElement } from 'react';
+import { cloneElement, isValidElement } from '@wordpress/element';
 import type { Currency } from '@woocommerce/types';
 import { SITE_CURRENCY } from '@woocommerce/settings';
 import { decodeHtmlEntities } from '@woocommerce/utils';
@@ -27,7 +28,7 @@ export interface FormattedMonetaryAmountProps
 	currency?: Currency | undefined; // Currency configuration object. Defaults to site currency.
 	onValueChange?: ( unit: number ) => void; // Function to call when value changes.
 	style?: React.CSSProperties | undefined;
-	renderText?: ( value: string ) => JSX.Element;
+	renderText?: ( value: string ) => React.ReactNode;
 }
 
 /**
@@ -94,6 +95,31 @@ const FormattedMonetaryAmount = ( {
 		return null;
 	}
 
+	// If we have rtl character in the prefix, we need to set the direction to ltr
+	// to avoid the price being displayed in the wrong direction.
+	const rtlPrefixStyles =
+		currency?.prefix !== ''
+			? {
+					unicodeBidi: 'bidi-override' as const,
+					direction: 'ltr' as const,
+			  }
+			: {};
+
+	const renderTextWithRtlStyles = ( val: string ) => {
+		// Apply the rtlPrefixStyles to the element returned by renderText.
+		const element = props.renderText ? props.renderText( val ) : null;
+		if ( ! isValidElement( element ) ) {
+			return null;
+		}
+
+		return cloneElement( element as ReactElement, {
+			style: {
+				...( element as ReactElement ).props.style,
+				...rtlPrefixStyles,
+			},
+		} );
+	};
+
 	const classes = clsx(
 		'wc-block-formatted-money-amount',
 		'wc-block-components-formatted-money-amount',
@@ -107,7 +133,18 @@ const FormattedMonetaryAmount = ( {
 		value: undefined,
 		currency: undefined,
 		onValueChange: undefined,
+		style: {
+			...props.style,
+			...rtlPrefixStyles,
+		},
 	};
+
+	if ( props.renderText ) {
+		// If renderText is provided, we need to add the rtl prefix styles to
+		// fix rtl currency ordering issue.
+		numberFormatProps.renderText = ( val: string ) =>
+			renderTextWithRtlStyles( val );
+	}
 
 	// Wrapper for NumberFormat onValueChange which handles subunit conversion.
 	const onValueChangeWrapper = onValueChange
@@ -118,13 +155,15 @@ const FormattedMonetaryAmount = ( {
 		: () => void 0;
 
 	return (
-		<NumberFormat
-			className={ classes }
-			displayType={ displayType }
-			{ ...numberFormatProps }
-			value={ priceValue }
-			onValueChange={ onValueChangeWrapper }
-		/>
+		<span className="wc-block-number-format-container">
+			<NumberFormat
+				className={ classes }
+				displayType={ displayType }
+				{ ...numberFormatProps }
+				value={ priceValue }
+				onValueChange={ onValueChangeWrapper }
+			/>
+		</span>
 	);
 };
 
