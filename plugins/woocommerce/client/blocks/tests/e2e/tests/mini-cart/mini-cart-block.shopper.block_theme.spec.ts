@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { expect, test as base, wpCLI } from '@woocommerce/e2e-utils';
+import { expect, test as base, wpCLI, BlockData } from '@woocommerce/e2e-utils';
 
 /**
  * Internal dependencies
@@ -13,6 +13,16 @@ import {
 import { getTestTranslation } from '../../utils/get-test-translation';
 import { translations } from '../../test-data/data/data';
 import ProductCollectionPage from '../product-collection/product-collection.page';
+import { blockData as baseBlockData } from './utils';
+
+type ExtendedBlockData = BlockData & {
+	productPage: string;
+};
+
+const blockData: ExtendedBlockData = {
+	...baseBlockData,
+	productPage: '/product/beanie/',
+};
 
 const test = base.extend< { productCollectionPage: ProductCollectionPage } >( {
 	productCollectionPage: async ( { page, admin, editor }, use ) => {
@@ -26,12 +36,14 @@ const test = base.extend< { productCollectionPage: ProductCollectionPage } >( {
 } );
 
 test.describe( 'Shopper → Notices', () => {
-	test( 'Shopper can add item to cart, and will not see a notice in the mini cart', async ( {
+	test( 'Shopper can add item to cart from the archive and product pages, and will not see a notice in the mini cart', async ( {
 		page,
 		editor,
 		admin,
 		productCollectionPage,
 	} ) => {
+		await admin.updateAddToCartAjaxSettings( true );
+
 		await admin.visitSiteEditor( {
 			postId: `twentytwentyfour//header`,
 			postType: 'wp_template_part',
@@ -67,6 +79,33 @@ test.describe( 'Shopper → Notices', () => {
 
 		await expect( page.getByText( 'Your cart' ) ).toBeVisible();
 		await expect( page.getByText( '(2 items)' ) ).toBeVisible();
+		await expect(
+			page
+				.getByRole( 'dialog' )
+				.getByText(
+					`The quantity of "${ SIMPLE_PHYSICAL_PRODUCT_NAME }" was`
+				)
+		).toBeHidden();
+
+		await page.goto( blockData.productPage );
+
+		await page
+			.getByRole( 'button', { name: 'Add to cart', exact: true } )
+			.click();
+
+		await expect(
+			page.getByRole( 'button', {
+				name: 'Add to cart',
+				exact: true,
+			} )
+		).toBeHidden();
+
+		await expect(
+			page.getByText( 'Your cart', { exact: true } )
+		).toBeVisible();
+		await expect(
+			page.getByText( '(3 items)', { exact: true } )
+		).toBeVisible();
 		await expect(
 			page
 				.getByRole( 'dialog' )

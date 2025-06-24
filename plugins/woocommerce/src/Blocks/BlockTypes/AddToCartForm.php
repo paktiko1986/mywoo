@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace Automattic\WooCommerce\Blocks\BlockTypes;
 
+use Automattic\WooCommerce\Enums\ProductType;
 use Automattic\WooCommerce\Admin\Features\Features;
 use Automattic\WooCommerce\Blocks\Utils\StyleAttributesUtils;
+use Automattic\WooCommerce\Blocks\Utils\AddToCartUtils;
 
 /**
- * CatalogSorting class.
+ * AddToCartForm class.
  */
 class AddToCartForm extends AbstractBlock {
 
@@ -45,6 +47,11 @@ class AddToCartForm extends AbstractBlock {
 	 * @param WP_Block $block Block instance.
 	 */
 	protected function enqueue_assets( $attributes, $content, $block ) {
+		$post_id = $block->context['postId'];
+		$product = wc_get_product( $post_id );
+
+		AddToCartUtils::conditionally_enqueue_single_add_to_cart_script( $product );
+
 		if ( 'stepper' !== $attributes['quantitySelectorStyle'] ) {
 			return;
 		}

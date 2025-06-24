@@ -10,6 +10,7 @@
  // phpcs:disable WooCommerce.Commenting.CommentHooks.MissingHookComment
 
 use Automattic\Jetpack\Constants;
+use Automattic\WooCommerce\Enums\ProductType;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -254,6 +255,11 @@ class WC_Frontend_Scripts {
 				'deps'    => array( 'jquery', 'woocommerce' ),
 				'version' => $version,
 			),
+			'wc-single-add-to-cart'      => array(
+				'src'     => self::get_asset_url( 'assets/js/frontend/single-add-to-cart' . $suffix . '.js' ),
+				'deps'    => array(),
+				'version' => $version,
+			),
 			'wc-cart'                    => array(
 				'src'     => self::get_asset_url( 'assets/js/frontend/cart' . $suffix . '.js' ),
 				'deps'    => array( 'jquery', 'woocommerce', 'wc-country-select', 'wc-address-i18n' ),
@@ -382,6 +388,22 @@ class WC_Frontend_Scripts {
 
 		if ( 'yes' === get_option( 'woocommerce_enable_ajax_add_to_cart' ) ) {
 			self::enqueue_script( 'wc-add-to-cart' );
+		}
+
+		if (
+			! wp_is_block_theme() &&
+			is_product() &&
+			'yes' === get_option( 'woocommerce_enable_ajax_add_to_cart_product_pages' ) &&
+			'yes' !== get_option( 'woocommerce_cart_redirect_after_add' )
+		) {
+			$product = wc_get_product( get_the_ID() );
+
+			if ( $product instanceof \WC_Product ) {
+				$is_not_purchasable = ProductType::SIMPLE === $product->get_type() && ( ! $product->is_purchasable() || ! $product->is_in_stock() );
+				if ( ProductType::EXTERNAL !== $product->get_type() && ! $is_not_purchasable ) {
+					self::enqueue_script( 'wc-single-add-to-cart' );
+				}
+			}
 		}
 		if ( is_cart() ) {
 			self::enqueue_script( 'wc-cart' );

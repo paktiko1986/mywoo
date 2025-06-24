@@ -8,6 +8,8 @@ use Automattic\WooCommerce\Blocks\Templates\ProductTagTemplate;
 use Automattic\WooCommerce\Blocks\Templates\ProductSearchResultsTemplate;
 use Automattic\WooCommerce\Blocks\Templates\OrderConfirmationTemplate;
 use Automattic\WooCommerce\Blocks\Utils\StyleAttributesUtils;
+use Automattic\WooCommerce\Blocks\Utils\AddToCartUtils;
+
 use WC_Shortcode_Checkout;
 use WC_Frontend_Scripts;
 
@@ -38,6 +40,22 @@ class ClassicTemplate extends AbstractDynamicBlock {
 		parent::initialize();
 		add_filter( 'render_block', array( $this, 'add_alignment_class_to_wrapper' ), 10, 2 );
 		add_action( 'enqueue_block_assets', array( $this, 'enqueue_block_assets' ) );
+	}
+
+	/**
+	 * Enqueue frontend assets for this block, just in time for rendering.
+	 *
+	 * @param array    $attributes  Any attributes that currently are available from the block.
+	 * @param string   $content    The block content.
+	 * @param WP_Block $block    The block object.
+	 */
+	protected function enqueue_assets( array $attributes, $content, $block ) {
+		parent::enqueue_assets( $attributes, $content, $block );
+
+		if ( is_product() ) {
+			$product = wc_get_product( get_the_ID() );
+			AddToCartUtils::conditionally_enqueue_single_add_to_cart_script( $product );
+		}
 	}
 
 	/**
@@ -170,7 +188,7 @@ class ClassicTemplate extends AbstractDynamicBlock {
 
 		echo '<div class="wp-block-group">';
 
-		echo sprintf(
+		printf(
 			'<%1$s %2$s>%3$s</%1$s>',
 			'h1',
 			get_block_wrapper_attributes(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
