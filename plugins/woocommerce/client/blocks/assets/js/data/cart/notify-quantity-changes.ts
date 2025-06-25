@@ -30,8 +30,7 @@ type NotifyQuantityChangesArgs = {
 const isWithinQuantityLimits = ( cartItem: CartItem ) => {
 	return (
 		cartItem.quantity >= cartItem.quantity_limits.minimum &&
-		cartItem.quantity <= cartItem.quantity_limits.maximum &&
-		cartItem.quantity % cartItem.quantity_limits.multiple_of === 0
+		cartItem.quantity <= cartItem.quantity_limits.maximum
 	);
 };
 
@@ -73,7 +72,7 @@ const notifyIfQuantityChanged = (
 					sprintf(
 						/* translators: %1$s is the name of the item, %2$d is the quantity of the item. */
 						__(
-							'The quantity of "%1$s" was changed to %2$d.',
+							'The quantity of "%1$s" was changed to %2$s.',
 							'woocommerce'
 						),
 						stripAndDecode( cartItem.name ),
