@@ -127,12 +127,14 @@ if ( ! function_exists( 'is_checkout_pay_page' ) ) {
 	/**
 	 * Is_checkout_pay - Returns true when viewing the checkout's pay page.
 	 *
+	 * @param bool $check_key Optional. If true, check if the key is set in the URL.
 	 * @return bool
 	 */
-	function is_checkout_pay_page() {
+	function is_checkout_pay_page( bool $check_key = false ): bool {
 		global $wp;
 
-		return is_checkout() && ! empty( $wp->query_vars['order-pay'] );
+		$is_pay_for_order = ( is_checkout() && ! empty( $wp->query_vars['order-pay'] ) ) || is_wc_endpoint_url( 'order-pay' ) || isset( $_GET['pay_for_order'] );  // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return $is_pay_for_order && ( ! $check_key || isset( $_GET['key'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 }
 
@@ -278,6 +280,18 @@ if ( ! function_exists( 'is_lost_password_page' ) ) {
 		$page_id = wc_get_page_id( 'myaccount' );
 
 		return ( $page_id && is_page( $page_id ) && isset( $wp->query_vars['lost-password'] ) );
+	}
+}
+
+if ( ! function_exists( 'is_wc_admin_settings_page' ) ) {
+
+	/**
+	 * Is_wc_admin_settings_page - Returns true when viewing the admin settings page.
+	 *
+	 * @return bool
+	 */
+	function is_wc_admin_settings_page(): bool {
+		return isset( $_REQUEST['page'] ) && 'wc-settings' === $_REQUEST['page'] && is_admin(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 }
 
