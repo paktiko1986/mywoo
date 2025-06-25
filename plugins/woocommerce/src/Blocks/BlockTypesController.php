@@ -556,6 +556,10 @@ final class BlockTypesController {
 			$block_types[] = 'AddToCartWithOptions\GroupedProductItemLabel';
 		}
 
+		if ( Features::is_enabled( 'experimental-blocks' ) ) {
+			$block_types[] = 'ProductFilterTaxonomy';
+		}
+
 		/**
 		 * This enables specific blocks in Widget Areas using an opt-in approach.
 		 */
